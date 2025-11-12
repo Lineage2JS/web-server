@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const net = require('net');
 const { json } = require('body-parser');
 const { Pool } = require('pg');
 
@@ -84,6 +85,92 @@ server.post('/account', async (request, response) => {
         message: 'Internal server error'
       });
     }
+  }
+});
+
+const loginServerStatus = {
+  host: 'localhost',
+  port: 2106,
+  status: 'unknown', // 'up', 'down', 'unknown', 'checking'
+  error: null,
+};
+const gameServerStatus = {
+  host: 'localhost',
+  port: 7777,
+  status: 'unknown', // 'up', 'down', 'unknown', 'checking'
+  error: null,
+};
+
+async function checkTcpServer(host, port) {
+  return new Promise((resolve) => {
+    const client = new net.Socket();
+    const timeout = 3000;
+    const timer = setTimeout(() => {
+      client.destroy();
+      resolve({ 
+        status: 'down', 
+        error: 'Connection timeout' 
+      });
+    }, timeout);
+
+    client.connect(port, host, () => {
+      clearTimeout(timer);
+      client.end();
+      resolve({ 
+        status: 'up'
+      });
+    });
+
+    client.on('error', (err) => {
+      clearTimeout(timer);
+      resolve({ 
+        status: 'down', 
+        error: err.message 
+      });
+    });
+  });
+}
+
+async function updateTcpStatus(serverStatus) {
+  serverStatus.status = 'checking';
+    
+  try {
+    const result = await checkTcpServer(serverStatus.host, serverStatus.port);
+      
+    serverStatus.status = result.status;
+    serverStatus.error = result.error;
+  } catch (error) {
+    serverStatus.status = 'error';
+    serverStatus.error = error.message;
+  }
+}
+
+function startTcpPolling() {
+  setInterval(() => updateTcpStatus(loginServerStatus), 3000);
+  setInterval(() => updateTcpStatus(gameServerStatus), 3000);
+}
+
+startTcpPolling();
+
+server.get('/status/:serverType/', (request, response) => {
+  const serverType = request.params.serverType;
+  
+  if (serverType === 'login') {
+    const payload = {
+      status: 'success',
+      data: loginServerStatus.status
+    }
+
+    response.json(payload);
+  }
+
+  if (serverType === 'game') {
+    const payload = {
+      status: 'success',
+      data: gameServerStatus.status
+    }
+
+    response.json(payload);
   }
 });
 
