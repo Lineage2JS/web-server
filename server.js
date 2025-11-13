@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const net = require('net');
+const svgCaptcha = require('svg-captcha');
 const { json } = require('body-parser');
 const { Pool } = require('pg');
 
@@ -15,6 +16,7 @@ const pool = new Pool({
 
 server.use(cors());
 server.use(json());
+server.use(express.static('public'))
 
 async function checkAccountExists(login) {
   try {
@@ -29,8 +31,61 @@ async function checkAccountExists(login) {
   }
 }
 
+const captchaStore = new Map();
+
+server.get('/captcha', (request, response) => {
+  const captcha = svgCaptcha.create({
+    size: 5,
+    ignoreChars: '0o1iIl',
+    noise: 2,
+    color: true,
+    background: '#f0f0f0'
+  });
+
+  const captchaId = Date.now().toString();
+  
+  // Сохраняем текст капчи
+  captchaStore.set(captchaId, captcha.text.toLowerCase());
+  
+  // Удаляем капчу через 10 минут
+  setTimeout(() => {
+    captchaStore.delete(captchaId);
+  }, 10 * 60 * 1000);
+
+  response.json({
+    status: 'success',
+    data: {
+      captchaId,
+      captcha: captcha.data
+    }
+  });
+});
+
 server.post('/account', async (request, response) => {
-  const { login, password } = request.body;
+  const { login, password, captchaId, captchaCode } = request.body;
+
+  const storedText = captchaStore.get(captchaId);
+
+  if (!storedText) {
+    return response.json({
+      status: 'failed',
+      message: 'Сaptcha is outdated'
+    });
+
+    return;
+  }
+
+  if (captchaCode.toLowerCase() != storedText) {
+    response.status(400).json({
+      status: 'failed',
+      message: 'Invalid captcha'
+    });
+
+    return;
+  }
+
+  // Удаляем использованную капчу
+  captchaStore.delete(captchaId);
 
   if (!login || !password) {
     response.status(400).json({
