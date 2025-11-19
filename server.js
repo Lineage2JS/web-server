@@ -152,13 +152,13 @@ server.post('/account', async (request, response) => {
 });
 
 const loginServerStatus = {
-  host: 'localhost',
+  host: '127.0.0.1',
   port: 2106,
   status: 'unknown', // 'up', 'down', 'unknown', 'checking'
   error: null,
 };
 const gameServerStatus = {
-  host: 'localhost',
+  host: '127.0.0.1',
   port: 7777,
   status: 'unknown', // 'up', 'down', 'unknown', 'checking'
   error: null,
