@@ -4,6 +4,7 @@ const net = require('net');
 const svgCaptcha = require('svg-captcha');
 const { json } = require('body-parser');
 const { Pool } = require('pg');
+const dotenv = require('dotenv');
 
 const server = express();
 const pool = new Pool({
@@ -16,7 +17,14 @@ const pool = new Pool({
 
 server.use(cors());
 server.use(json());
-server.use(express.static('public'))
+
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config();
+}
+
+const staticPath = process.env.STATIC_FILES_PATH || 'public';
+
+server.use(express.static(staticPath));
 
 async function checkAccountExists(login) {
   try {
