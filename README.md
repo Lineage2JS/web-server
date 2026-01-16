@@ -1,5 +1,7 @@
 # Web server.
 
+![logo](ws.png)
+
 <b>Web server</b> - dedicated server for hosting a game website.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg)](https://github.com/Lineage2JS/game-server/blob/main/LICENSE)
