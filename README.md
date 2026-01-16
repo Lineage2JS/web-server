@@ -1,4 +1,4 @@
-# Web server.
+# Web server
 
 ![logo](ws.png)
 
